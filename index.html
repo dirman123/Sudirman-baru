@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Rangkuman Doa Mustajab Pembuka Rezeki</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            border-top: 8px solid #1b4d3e;
+        }
+        h2 {
+            color: #1b4d3e;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .btn-wa {
+            background-color: #25D366;
+            color: white;
+        }
+        .btn-wa:hover {
+            background-color: #20ba59;
+        }
+        .btn-download {
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+        }
+        .btn-download.active {
+            background-color: #1b4d3e;
+            color: white;
+            cursor: pointer;
+        }
+        .footer {
+            margin-top: 25px;
+            font-size: 11px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Rangkuman 7 Doa Mustajab Pembuka Pintu Rezeki</h2>
+    <p>Silakan ambil file PDF resmi secara gratis. Bantu bagikan kebaikan ini kepada keluarga atau kerabat Anda di WhatsApp untuk membuka tombol unduh.</p>
+    
+    <button id="shareBtn" class="btn btn-wa" onclick="jalankanShare()">
+        🟢 Bagikan ke WhatsApp
+    </button>
+    
+    <a id="downloadBtn" href="#" class="btn btn-download" onclick="peringatanKlik(event)">
+        🔒 Ambil File PDF Gratis
+    </a>
+    
+    <div class="footer">
+        Semoga menjadi amal jariyah dan pembuka pintu rezeki kita bersama. Amin.
+    </div>
+</div>
+
+<script>
+    var pesanWhatsApp = "https://api.whatsapp.com/send?text=Bagus%20sekali%20amalan%20ini.%20Silakan%20ambil%20PDF%20Rangkuman%207%20Doa%20Mustajab%20Pembuka%20Rezeki%20secara%20gratis%20di%20sini:%20https://nama-webmu.pages.dev";
+    var linkShopeeAffiliate = "https://shope.ee/contohLinkKamu"; 
+
+    var sudahShare = false;
+
+    function jalankanShare() {
+        window.open(pesanWhatsApp, '_blank');
+        
+        setTimeout(function() {
+            var btnDownload = document.getElementById('downloadBtn');
+            btnDownload.className = "btn btn-download active";
+            btnDownload.innerHTML = "📥 Download PDF Sekarang";
+            sudahShare = true;
+        }, 3000);
+    }
+
+    function peringatanKlik(event) {
+        if (!sudahShare) {
+            event.preventDefault();
+            alert("Silakan klik tombol 'Bagikan ke WhatsApp' terlebih dahulu untuk membuka kunci file PDF.");
+        } else {
+            window.location.href = linkShopeeAffiliate;
+        }
+    }
+</script>
+
+</body>
+</html>
