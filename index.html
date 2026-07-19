@@ -1,126 +1,249 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download Rangkuman Doa Mustajab Pembuka Rezeki</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            max-width: 450px;
-            width: 100%;
-            text-align: center;
-            border-top: 8px solid #1b4d3e;
-        }
-        h2 {
-            color: #1b4d3e;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        p {
-            color: #555;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 25px;
-        }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-            text-decoration: none;
-            box-sizing: border-box;
-        }
-        .btn-wa {
-            background-color: #25D366;
-            color: white;
-        }
-        .btn-wa:hover {
-            background-color: #20ba59;
-        }
-        .btn-download {
-            background-color: #cccccc;
-            color: #666666;
-            cursor: not-allowed;
-        }
-        .btn-download.active {
-            background-color: #1b4d3e;
-            color: white;
-            cursor: pointer;
-        }
-        .footer {
-            margin-top: 25px;
-            font-size: 11px;
-            color: #999;
-        }
-    </style>
-</head>
-<body>
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
 
-<div class="container">
-    <h2>Rangkuman 7 Doa Mustajab Pembuka Pintu Rezeki</h2>
-    <p>Silakan ambil file PDF resmi secara gratis. Bantu bagikan kebaikan ini kepada keluarga atau kerabat Anda di WhatsApp untuk membuka tombol unduh.</p>
-    
-    <button id="shareBtn" class="btn btn-wa" onclick="jalankanShare()">
-        🟢 Bagikan ke WhatsApp
-    </button>
-    
-    <a id="downloadBtn" href="#" class="btn btn-download" onclick="peringatanKlik(event)">
-        🔒 Ambil File PDF Gratis
-    </a>
-    
-    <div class="footer">
-        Semoga menjadi amal jariyah dan pembuka pintu rezeki kita bersama. Amin.
-    </div>
-</div>
+async function handleRequest(request) {
+  const url = new URL(request.url)
 
-<script>
-    var pesanWhatsApp = "https://api.whatsapp.com/send?text=Bagus%20sekali%20amalan%20ini.%20Silakan%20ambil%20PDF%20Rangkuman%207%20Doa%20Mustajab%20Pembuka%20Rezeki%20secara%20gratis%20di%20sini:%20https://nama-webmu.pages.dev";
-    var linkShopeeAffiliate = "https://shope.ee/contohLinkKamu"; 
+  // 1. JALUR RAHASIA DOWNLOAD DATABASE KE EXCEL (CSV)
+  if (url.pathname === '/ambil-datasaya' || url.pathname === '/rahasia') {
+    // Mengambil semua data dari Cloudflare KV Storage (Namespace: DATABASE_USER)
+    const list = await DATABASE_USER.list()
+    let csvContent = "Tanggal,Nama,WhatsApp,Email\n"
 
-    var sudahShare = false;
-
-    function jalankanShare() {
-        window.open(pesanWhatsApp, '_blank');
-        
-        setTimeout(function() {
-            var btnDownload = document.getElementById('downloadBtn');
-            btnDownload.className = "btn btn-download active";
-            btnDownload.innerHTML = "📥 Download PDF Sekarang";
-            sudahShare = true;
-        }, 3000);
+    for (const key of list.keys) {
+      const dataString = await DATABASE_USER.get(key.name)
+      if (dataString) {
+        try {
+          const user = JSON.parse(dataString)
+          // Membungkus data dengan tanda kutip agar aman saat dibuka di Excel
+          csvContent += `"${key.name}","${user.nama}","${user.whatsapp}","${user.email}"\n`
+        } catch (e) {}
+      }
     }
 
-    function peringatanKlik(event) {
-        if (!sudahShare) {
-            event.preventDefault();
-            alert("Silakan klik tombol 'Bagikan ke WhatsApp' terlebih dahulu untuk membuka kunci file PDF.");
-        } else {
-            window.location.href = linkShopeeAffiliate;
-        }
-    }
-</script>
+    return new Response(csvContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename=database_dirmang_ai.csv',
+      }
+    })
+  }
 
-</body>
-</html>
+  // 2. Menerima data kiriman Formulir (API POST)
+  if (request.method === 'POST' && url.pathname === '/simpan-data') {
+    try {
+      const data = await request.json()
+      const timestamp = new Date().toLocaleString("id-ID", { timeZone: "Asia/Makassar" })
+      
+      // Simpan ke Cloudflare KV dengan Key berupa Waktu dan Value berupa Data User
+      await DATABASE_USER.put(timestamp, JSON.stringify({
+        nama: data.nama,
+        whatsapp: data.whatsapp,
+        email: data.email
+      }))
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    } catch (err) {
+      return new Response(JSON.stringify({ success: false, error: err.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+  }
+
+  // 3. TAMPILAN UTAMA LANDING PAGE (HTML/CSS/JS)
+  const html = `
+  <!DOCTYPE html>
+  <html lang="id">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Muhasabah Diri: Mengetuk Jalur Langit Pembuka Rezeki</title>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+          :root {
+              --primary-color: #0f5132;
+              --secondary-color: #d4af37;
+              --bg-color: #f4f7f6;
+              --text-color: #212529;
+          }
+          body { font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); text-align: center; padding: 30px 15px; margin: 0; }
+          .container { max-width: 550px; background: white; padding: 35px 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin: 0 auto; border-top: 8px solid var(--secondary-color); text-align: left; }
+          h1 { color: var(--primary-color); font-size: 24px; font-weight: 700; margin-top: 0; text-align: center; line-height: 1.3; }
+          .sub-title { font-size: 13px; color: #6c757d; font-style: italic; text-align: center; margin-bottom: 25px; }
+          
+          .headline-box { background-color: #e8f5e9; border-left: 5px solid var(--primary-color); padding: 18px; border-radius: 8px; margin-bottom: 25px; }
+          .headline-box h3 { margin: 0 0 10px 0; color: var(--primary-color); font-size: 16px; }
+          .headline-box p { margin: 0; font-size: 14px; line-height: 1.6; color: #333; }
+          
+          .alert-box { background-color: #fff3cd; border: 1px solid #ffe69c; color: #664d03; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+          
+          .steps { margin: 20px 0; padding: 0; list-style: none; }
+          .steps li { margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; }
+          .step-num { background: var(--primary-color); color: white; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; margin-right: 12px; font-weight: bold; flex-shrink: 0; font-size: 12px; }
+          
+          .btn { display: block; padding: 16px; margin: 20px 0; border-radius: 10px; font-size: 15px; font-weight: bold; text-decoration: none; transition: 0.3s; cursor: pointer; border: none; width: 100%; box-sizing: border-box; text-align: center; }
+          .btn-share { background-color: #25D366; color: white; box-shadow: 0 4px 12px rgba(37,211,102,0.2); }
+          .btn-share:hover { background-color: #1ebd58; }
+          .btn-download { background-color: #e9ecef; color: #adb5bd; cursor: not-allowed; }
+          .btn-download.active { background-color: var(--secondary-color); color: #000; cursor: pointer; box-shadow: 0 4px 12px rgba(212,175,55,0.3); }
+          
+          /* Audio Player Section */
+          .audio-card { display: none; background: #f8f9fa; border: 2px dashed var(--primary-color); padding: 20px; border-radius: 12px; margin-top: 25px; text-align: center; }
+          .audio-card h4 { margin: 0 0 10px 0; color: var(--primary-color); }
+          audio { width: 100%; margin-top: 10px; }
+
+          /* Modal Form Pop-up */
+          .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
+          .modal-content { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 420px; box-sizing: border-box; }
+          .modal-content h3 { margin: 0 0 10px 0; color: var(--primary-color); font-size: 18px; }
+          .form-group { margin-bottom: 15px; }
+          .form-group label { display: block; font-size: 13px; margin-bottom: 5px; font-weight: 600; }
+          .form-group input { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+          .btn-submit { background-color: var(--primary-color); color: white; margin-top: 10px; }
+          
+          .footer { font-size: 11px; color: #8c92ac; margin-top: 30px; text-align: center; line-height: 1.5; }
+      </style>
+  </head>
+  <body>
+
+  <div class="container">
+      <h1>Penyebab Rezeki Seret & Macet,<br>Bisa Jadi Karena 1 Hal Ini...</h1>
+      <div class="sub-title">Muhasabah Bersama Jalur Langit Pembuka Pintu Rezeki</div>
+      
+      <div class="headline-box">
+          <h3>Pernah Merasa Kerja Keras Siang Malam Tapi Uang Cepat Habis?</h3>
+          <p>Sudah banting tulang, namun kebutuhan selalu menuntut lebih dan tabungan tetap kosong. Di dalam ilmu agama, rezeki bukan cuma soal angka materi, melainkan soal keberkahan aliran energinya. Ketika pintu berkah itu tersumbat oleh kelalaian kita, di sanalah rezeki terasa seret dan melelahkan.</p>
+      </div>
+
+      <div class="alert-box">
+          🎁 SEBARKAN KEBAIKAN & DAPATKAN AUDIO AFIRMASI REZEKI PREMIUM
+      </div>
+
+      <p style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: #c92a2a;">IKUTI LANGKAH BERIKUT UNTUK MEMBUKA AKSES AUDIO:</p>
+      <ul class="steps">
+          <li><span class="step-num">1</span> Klik tombol hijau di bawah untuk membagikan amalan bermanfaat ini ke WhatsApp.</li>
+          <li><span class="step-num">2</span> Sistem otomatis memproses pembukaan kunci dalam waktu 3 detik.</li>
+          <li><span class="step-num">3</span> Ketuk tombol unduh yang telah aktif dan masukkan data verifikasi Anda.</li>
+      </ul>
+      
+      <button id="shareBtn" class="btn btn-share">🟢 1. Bagikan Amalan Ini ke WhatsApp</button>
+      
+      <button id="downloadBtn" class="btn btn-download" disabled>🔒 2. Ambil Hadiah Audio Afirmasi</button>
+
+      <div id="audioSection" class="audio-card">
+          <h4>🔓 Akses Terbuka! Selamat Mendengarkan</h4>
+          <p style="font-size: 13px; color: #555; margin: 0;">Silakan dengarkan Audio Afirmasi Rezeki Anda langsung di bawah ini:</p>
+          <audio controls controlsList="nodownload">
+              <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mp3">
+              Browser Anda tidak mendukung pemutar audio.
+          </audio>
+      </div>
+
+      <div class="footer">
+          "Barangsiapa yang menunjuki kepada kebaikan, maka baginya pahala seperti pahala orang yang mengerjakannya." (HR. Muslim)<br>
+          Semoga menjadi ladang amal jariyah pembuka pintu rezeki kita semua. Amin.
+      </div>
+  </div>
+
+  <div id="formModal" class="modal">
+      <div class="modal-content">
+          <h3>Satu Langkah Terakhir!</h3>
+          <p style="font-size: 13px; color: #666; margin-bottom: 18px;">Silakan masukkan Nama, Nomor WhatsApp, dan Email Anda yang valid untuk membuka pemutar audio resmi langsung di halaman ini.</p>
+          
+          <form id="leadForm">
+              <div class="form-group">
+                  <label for="nama">Nama Lengkap:</label>
+                  <input type="text" id="nama" placeholder="Contoh: Ahmad Sudirman" required>
+              </div>
+              <div class="form-group">
+                  <label for="whatsapp">Nomor WhatsApp Aktif:</label>
+                  <input type="tel" id="whatsapp" placeholder="Contoh: 081234567xxx" required>
+              </div>
+              <div class="form-group">
+                  <label for="email">Alamat Email:</label>
+                  <input type="email" id="email" placeholder="Contoh: sudirman@gmail.com" required>
+              </div>
+              <button type="submit" class="btn btn-submit">🚀 Dapatkan Audio Sekarang</button>
+          </form>
+      </div>
+  </div>
+
+  <script>
+      const shareBtn = document.getElementById('shareBtn');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const formModal = document.getElementById('formModal');
+      const leadForm = document.getElementById('leadForm');
+      const audioSection = document.getElementById('audioSection');
+      
+      let sudahShare = false;
+
+      // Kunci Tautan Mengarah Otomatis ke Domain Aslimu
+      const shareText = encodeURIComponent("Bagus sekali penjelasan amalan ini. Silakan baca artikel Penyebab Rezeki Seret & ambil Audio Afirmasi Pembuka Rezeki secara gratis di sini: https://sudirman-baru.gayakuno.workers.dev/");
+      const whatsappUrl = \`https://api.whatsapp.com/send?text=\${shareText}\`;
+
+      shareBtn.addEventListener('click', () => {
+          window.open(whatsappUrl, '_blank');
+          
+          // Aktifkan tombol unduh setelah jeda 3 detik
+          setTimeout(() => {
+              sudahShare = true;
+              downloadBtn.removeAttribute('disabled');
+              downloadBtn.classList.add('active');
+              downloadBtn.innerText = "🔓 2. Ambil Hadiah Audio Afirmasi (Aktif)";
+          }, 3000);
+      });
+
+      downloadBtn.addEventListener('click', () => {
+          if (sudahShare) {
+              formModal.style.display = 'flex';
+          }
+      });
+
+      leadForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const nama = document.getElementById('nama').value;
+          const whatsapp = document.getElementById('whatsapp').value;
+          const email = document.getElementById('email').value;
+
+          // Kirim data formulir ke backend Cloudflare Workers secara background
+          try {
+              const response = await fetch('/simpan-data', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ nama, whatsapp, email })
+              });
+              
+              const result = await response.json();
+              
+              if(result.success) {
+                  alert(\`Alhamdulillah \${nama}, data Anda berhasil terverifikasi! Akses audio sudah terbuka di bawah.\`);
+                  formModal.style.display = 'none';
+                  
+                  // Sembunyikan tombol download, lalu munculkan pemutar audio
+                  downloadBtn.style.display = 'none';
+                  shareBtn.style.display = 'none';
+                  audioSection.style.display = 'block';
+              } else {
+                  alert("Maaf, terjadi kesalahan server. Coba lagi nanti.");
+              }
+          } catch (err) {
+              alert("Gagal menghubungkan ke server. Periksa koneksi internet Anda.");
+          }
+      });
+  </script>
+
+  </body>
+  </html>
+  `
+
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' }
+  })
+}
